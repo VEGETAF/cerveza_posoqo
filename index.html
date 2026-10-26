@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>POSOQO | Terminal de Barra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root { --bg-dark: #000; --card-bg: #111; --gold: #F59E0B; --text-main: #FFF; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -21,6 +23,10 @@
     .grid-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 20px; }
     .instruccion { text-align: center; padding: 20px; background: #222; border-radius: 12px; border: 1px dashed #555; margin-bottom: 20px; }
+    #qr-reader { width: 100%; overflow: hidden; border-radius: 12px; margin: 0 auto 12px; }
+    #qr-reader video { border-radius: 12px; }
+    .nota { color: #aaa; font-size: .82rem; line-height: 1.4; text-align: center; margin: 4px 0 12px; }
+    .estado { color: var(--gold); font-size: .9rem; text-align: center; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -28,16 +34,21 @@
     <div class="header"><h1>POSOQO</h1><p>Barra</p></div>
 
     <div id="pantallaLogin" class="card" style="display: none;">
-      <input type="password" id="txtPin" class="input-field" placeholder="PIN Maestro">
+      <input type="password" id="txtPin" class="input-field" placeholder="PIN Maestro" autocomplete="current-password">
       <button class="btn btn-gold" onclick="iniciarSesion()">Acceder</button>
     </div>
 
     <div id="pantallaEscaner" class="card" style="display: none;">
       <div class="instruccion">
         <p style="font-size: 2rem;">📸</p>
-        <p style="color: #FFF; font-weight: bold;">Usa la cámara nativa de tu celular</p>
+        <p style="color: #FFF; font-weight: bold;">Escanea el QR de la tarjeta POSOQO</p>
+        <p class="nota">Permite el acceso a la cámara cuando el navegador lo solicite.</p>
       </div>
-      <input type="tel" id="txtBuscar" class="input-field" placeholder="ID Manual">
+      <div id="qr-reader" style="display:none;"></div>
+      <p id="estadoEscaner" class="estado" aria-live="polite"></p>
+      <button id="btnAbrirCamara" class="btn btn-gold" onclick="abrirCamara()">Abrir cámara y escanear QR</button>
+      <button id="btnCerrarCamara" class="btn btn-outline" onclick="cerrarCamara()" style="display:none;">Cerrar cámara</button>
+      <input type="text" id="txtBuscar" class="input-field" placeholder="ID manual (ej. CLI-001)" autocomplete="off">
       <button class="btn btn-outline" onclick="buscarManual()">Buscar Cliente</button>
     </div>
 
@@ -60,51 +71,157 @@
   </div>
 
   <script>
-    // ⚠️ REEMPLAZA ESTO CON TU ENLACE DE GOOGLE APPS SCRIPT
+    // URL de la implementación web de Google Apps Script.
     const API_URL = "https://script.google.com/macros/s/AKfycbzfzht2jY6PkRzQbiCKcFocs0p9zF0R93GndHu0LTMeYg25eYJYl-3nsnuTEf21EuPg/exec";
-    let pinActual = localStorage.getItem('posoqo_pin') || ""; 
+    let pinActual = localStorage.getItem('posoqo_pin') || "";
     let clienteSelec = null;
+    let lectorQR = null;
+    let camaraActiva = false;
+    let procesandoQR = false;
 
     window.onload = () => {
-      if (!pinActual) return document.getElementById('pantallaLogin').style.display = 'block';
-      
       const params = new URLSearchParams(window.location.search);
       const idEscaneado = params.get('id');
-      if (idEscaneado) procesarCliente(idEscaneado);
-      else document.getElementById('pantallaEscaner').style.display = 'block';
+      if (!pinActual) {
+        document.getElementById('pantallaLogin').style.display = 'block';
+      } else if (idEscaneado) {
+        procesarCliente(idEscaneado);
+      } else {
+        document.getElementById('pantallaEscaner').style.display = 'block';
+      }
     };
 
     async function llamarAPI(params) {
       document.getElementById('loader').style.display = 'block';
-      const url = new URL(API_URL);
-      url.searchParams.append('api', 'true');
-      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
       try {
-        const res = await fetch(url);
-        document.getElementById('loader').style.display = 'none';
-        return await res.json();
+        const url = new URL(API_URL);
+        url.searchParams.append('api', 'true');
+        Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+        const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const datos = await res.json();
+        return datos;
       } catch (e) {
+        console.error('Error llamando a Apps Script:', e);
+        return { exito: false, mensaje: 'No se pudo conectar con Google Apps Script. Verifica la URL, la implementación y los permisos de acceso.' };
+      } finally {
         document.getElementById('loader').style.display = 'none';
-        return { exito: false, mensaje: "Error de conexión" };
       }
     }
 
     async function iniciarSesion() {
-      const pin = document.getElementById('txtPin').value;
+      const pin = document.getElementById('txtPin').value.trim();
+      if (!pin) return alert('Ingresa el PIN.');
       const res = await llamarAPI({ accion: 'validarPIN', pin: pin });
       if (res.exito) {
         pinActual = pin;
         localStorage.setItem('posoqo_pin', pin);
         document.getElementById('pantallaLogin').style.display = 'none';
         document.getElementById('pantallaEscaner').style.display = 'block';
-      } else alert("PIN Incorrecto");
+      } else alert(res.mensaje || 'PIN incorrecto.');
     }
 
-    function buscarManual() { procesarCliente(document.getElementById('txtBuscar').value); }
+    async function abrirCamara() {
+      const estado = document.getElementById('estadoEscaner');
+      if (!window.Html5Qrcode) {
+        estado.textContent = 'No se pudo cargar el lector QR. Comprueba tu conexión a internet y recarga la página.';
+        return;
+      }
+      if (!window.isSecureContext) {
+        estado.textContent = 'La cámara requiere una página HTTPS. Abre la página publicada en GitHub Pages mediante https://';
+        return;
+      }
+      if (camaraActiva) return;
+
+      const lector = document.getElementById('qr-reader');
+      lector.style.display = 'block';
+      document.getElementById('btnAbrirCamara').style.display = 'none';
+      document.getElementById('btnCerrarCamara').style.display = 'block';
+      estado.textContent = 'Solicitando permiso para usar la cámara…';
+
+      try {
+        lectorQR = new Html5Qrcode('qr-reader');
+        await lectorQR.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 230, height: 230 }, aspectRatio: 1.0 },
+          async (textoLeido) => {
+            if (procesandoQR) return;
+            procesandoQR = true;
+            estado.textContent = 'QR leído. Buscando cliente…';
+            const id = extraerIdCliente(textoLeido);
+            await cerrarCamara();
+            if (!id) {
+              procesandoQR = false;
+              estado.textContent = 'El QR no contiene un ID de cliente reconocido.';
+              return;
+            }
+            document.getElementById('txtBuscar').value = id;
+            await procesarCliente(id);
+          },
+          () => { /* Los errores de lectura por fotograma son normales; se sigue intentando. */ }
+        );
+        camaraActiva = true;
+        estado.textContent = 'Cámara activa. Apunta al código QR de la tarjeta.';
+      } catch (e) {
+        console.error('No se pudo iniciar la cámara:', e);
+        lector.style.display = 'none';
+        document.getElementById('btnAbrirCamara').style.display = 'block';
+        document.getElementById('btnCerrarCamara').style.display = 'none';
+        estado.textContent = 'No se pudo abrir la cámara. Revisa los permisos del navegador y que otra aplicación no la esté usando.';
+        if (lectorQR) {
+          try { await lectorQR.clear(); } catch (_) {}
+          lectorQR = null;
+        }
+      }
+    }
+
+    async function cerrarCamara() {
+      if (lectorQR) {
+        try {
+          if (camaraActiva) await lectorQR.stop();
+        } catch (e) { console.warn('No se pudo detener la cámara limpiamente:', e); }
+        try { await lectorQR.clear(); } catch (_) {}
+      }
+      lectorQR = null;
+      camaraActiva = false;
+      const lector = document.getElementById('qr-reader');
+      lector.innerHTML = '';
+      lector.style.display = 'none';
+      document.getElementById('btnAbrirCamara').style.display = 'block';
+      document.getElementById('btnCerrarCamara').style.display = 'none';
+    }
+
+    function extraerIdCliente(texto) {
+      const valor = String(texto || '').trim();
+      if (!valor) return '';
+      // Acepta QR con una URL que tenga ?id=CLI-001.
+      try {
+        const url = new URL(valor);
+        const id = url.searchParams.get('id');
+        if (id) return id.trim();
+      } catch (_) { /* El contenido puede ser un ID de cliente sin URL. */ }
+      // Acepta también QR que contenga directamente el ID, por ejemplo CLI-001.
+      if (!/^https?:\/\//i.test(valor)) return valor;
+      return '';
+    }
+
+    async function buscarManual() {
+      const id = document.getElementById('txtBuscar').value.trim();
+      if (!id) return alert('Escribe el ID del cliente.');
+      await cerrarCamara();
+      await procesarCliente(id);
+    }
 
     async function procesarCliente(id) {
+      const criterio = String(id || '').trim();
+      if (!criterio) {
+        document.getElementById('pantallaEscaner').style.display = 'block';
+        alert('No se recibió un ID de cliente.');
+        return;
+      }
       document.getElementById('pantallaEscaner').style.display = 'none';
-      const res = await llamarAPI({ accion: 'buscarCliente', criterio: id });
+      document.getElementById('pantallaAcciones').style.display = 'none';
+      const res = await llamarAPI({ accion: 'buscarCliente', criterio: criterio });
       if (res.exito) {
         clienteSelec = res.cliente;
         document.getElementById('pantallaAcciones').style.display = 'block';
@@ -112,26 +229,38 @@
         document.getElementById('lblClienteStats').innerText = `Sellos: ${res.balance.sellosActuales}/${res.balance.totalMeta}`;
         document.getElementById('btnCanjear').style.display = res.balance.tienePremioListo ? 'block' : 'none';
       } else {
-        alert(res.mensaje);
-        volverInicio();
+        alert(res.mensaje || 'No se encontró al cliente.');
+        document.getElementById('pantallaEscaner').style.display = 'block';
       }
+      procesandoQR = false;
     }
 
     async function registrar(cant) {
+      if (!clienteSelec) return alert('Primero selecciona un cliente.');
       document.getElementById('pantallaAcciones').style.display = 'none';
       const res = await llamarAPI({ accion: 'registrarCompra', id: clienteSelec.idCliente, cantidad: cant, pin: pinActual });
-      alert(res.mensaje);
-      window.location.href = window.location.pathname; // Limpia la URL
+      alert(res.mensaje || (res.exito ? 'Compra registrada.' : 'No se pudo registrar la compra.'));
+      volverInicio();
     }
 
     async function canjear() {
+      if (!clienteSelec) return alert('Primero selecciona un cliente.');
+      if (!confirm('¿Confirmas el canje del premio para este cliente?')) return;
       document.getElementById('pantallaAcciones').style.display = 'none';
       const res = await llamarAPI({ accion: 'canjearPremio', id: clienteSelec.idCliente, pin: pinActual });
-      alert(res.mensaje);
-      window.location.href = window.location.pathname;
+      alert(res.mensaje || (res.exito ? 'Canje procesado.' : 'No se pudo procesar el canje.'));
+      volverInicio();
     }
 
-    function volverInicio() { window.location.href = window.location.pathname; }
+    async function volverInicio() {
+      await cerrarCamara();
+      clienteSelec = null;
+      procesandoQR = false;
+      document.getElementById('pantallaAcciones').style.display = 'none';
+      document.getElementById('pantallaEscaner').style.display = 'block';
+      document.getElementById('txtBuscar').value = '';
+      document.getElementById('estadoEscaner').textContent = '';
+    }
   </script>
 </body>
 </html>
