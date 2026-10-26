@@ -5,35 +5,27 @@
   <title>POSOQO | Terminal de Barra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
   <style>
-    :root { --bg-dark: #000; --card-bg: #111; --gold: #F59E0B; --text-main: #FFF; --text-muted: #9CA3AF; }
+    :root { --bg-dark: #000; --card-bg: #111; --gold: #F59E0B; --text-main: #FFF; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
     body { background-color: var(--bg-dark); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 14px; }
     .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
     .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: 2px; }
-    .header span { color: var(--gold); }
+    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
     .card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid #333; }
     .input-field { width: 100%; background: #222; border: 1px solid #444; border-radius: 12px; padding: 15px; color: #FFF; font-size: 1.2rem; text-align: center; margin-bottom: 15px; }
-    .btn { width: 100%; padding: 15px; border-radius: 12px; font-size: 1rem; font-weight: 700; border: none; cursor: pointer; text-align: center; margin-bottom: 10px; }
+    .btn { width: 100%; padding: 15px; border-radius: 12px; font-size: 1rem; font-weight: 700; border: none; cursor: pointer; margin-bottom: 10px; }
     .btn-gold { background: var(--gold); color: #000; }
     .btn-outline { background: transparent; border: 1px solid #555; color: #FFF; }
     .btn-green { background: #10B981; color: #FFF; }
-    .client-info { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333; }
-    .client-name { font-size: 1.4rem; font-weight: 800; color: var(--gold); }
     .grid-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 20px; }
-    #reader { width: 100%; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 2px solid #333; }
+    .instruccion { text-align: center; padding: 20px; background: #222; border-radius: 12px; border: 1px dashed #555; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-
   <div class="app-container">
-    <div class="header">
-      <h1>POSOQO<span>.</span></h1>
-    </div>
+    <div class="header"><h1>POSOQO</h1><p>Barra</p></div>
 
     <div id="pantallaLogin" class="card" style="display: none;">
       <input type="password" id="txtPin" class="input-field" placeholder="PIN Maestro">
@@ -41,54 +33,59 @@
     </div>
 
     <div id="pantallaEscaner" class="card" style="display: none;">
-      <div id="reader"></div>
+      <div class="instruccion">
+        <p style="font-size: 2rem;">📸</p>
+        <p style="color: #FFF; font-weight: bold;">Usa la cámara nativa de tu celular</p>
+      </div>
       <input type="tel" id="txtBuscar" class="input-field" placeholder="ID Manual">
-      <button class="btn btn-outline" onclick="buscarManual()">Buscar</button>
+      <button class="btn btn-outline" onclick="buscarManual()">Buscar Cliente</button>
     </div>
 
-    <div id="loader" class="loader">Conectando...</div>
+    <div id="loader" class="loader">Procesando...</div>
 
     <div id="pantallaAcciones" class="card" style="display: none;">
-      <div class="client-info">
-        <div class="client-name" id="lblClienteNombre">Nombre</div>
-        <div id="lblClienteStats">Sellos: 0/9</div>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 id="lblClienteNombre" style="color: var(--gold);">Nombre</h2>
+        <p id="lblClienteStats">Sellos: 0/9</p>
       </div>
       <div class="grid-botones">
-        <button class="btn btn-outline" onclick="registrarCompra(1)">+1 Chop</button>
-        <button class="btn btn-outline" onclick="registrarCompra(2)">+2 Chops</button>
-        <button class="btn btn-outline" onclick="registrarCompra(3)">+3 Chops</button>
-        <button class="btn btn-outline" onclick="registrarCompra(4)">+4 Chops</button>
+        <button class="btn btn-outline" onclick="registrar(1)">+1 Chop</button>
+        <button class="btn btn-outline" onclick="registrar(2)">+2 Chops</button>
+        <button class="btn btn-outline" onclick="registrar(3)">+3 Chops</button>
+        <button class="btn btn-outline" onclick="registrar(4)">+4 Chops</button>
       </div>
-      <button id="btnCanjear" class="btn btn-green" onclick="canjearRecompensa()" style="display: none;">Entregar Jarra</button>
+      <button id="btnCanjear" class="btn btn-green" onclick="canjear()" style="display: none;">Entregar Jarra</button>
       <button class="btn btn-outline" onclick="volverInicio()" style="margin-top: 20px;">Volver</button>
     </div>
   </div>
 
   <script>
-    // URL DE TU GOOGLE APPS SCRIPT PUBLICADO (Debe ser ejecutable por cualquier persona)
+    // ⚠️ REEMPLAZA ESTO CON TU ENLACE DE GOOGLE APPS SCRIPT
     const API_URL = "https://script.google.com/macros/s/AKfycbzfzht2jY6PkRzQbiCKcFocs0p9zF0R93GndHu0LTMeYg25eYJYl-3nsnuTEf21EuPg/exec";
-    
     let pinActual = localStorage.getItem('posoqo_pin') || ""; 
-    let clienteSeleccionado = null;
-    let html5QrcodeScanner = null;
+    let clienteSelec = null;
 
-    window.onload = () => pinActual ? iniciarEscaner() : document.getElementById('pantallaLogin').style.display = 'block';
+    window.onload = () => {
+      if (!pinActual) return document.getElementById('pantallaLogin').style.display = 'block';
+      
+      const params = new URLSearchParams(window.location.search);
+      const idEscaneado = params.get('id');
+      if (idEscaneado) procesarCliente(idEscaneado);
+      else document.getElementById('pantallaEscaner').style.display = 'block';
+    };
 
     async function llamarAPI(params) {
-      mostrarLoader(true);
+      document.getElementById('loader').style.display = 'block';
       const url = new URL(API_URL);
       url.searchParams.append('api', 'true');
-      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-      
+      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
       try {
-        const response = await fetch(url);
-        const data = await response.json();
-        mostrarLoader(false);
-        return data;
-      } catch (error) {
-        mostrarLoader(false);
-        alert('Error de conexión.');
-        return { exito: false };
+        const res = await fetch(url);
+        document.getElementById('loader').style.display = 'none';
+        return await res.json();
+      } catch (e) {
+        document.getElementById('loader').style.display = 'none';
+        return { exito: false, mensaje: "Error de conexión" };
       }
     }
 
@@ -99,34 +96,17 @@
         pinActual = pin;
         localStorage.setItem('posoqo_pin', pin);
         document.getElementById('pantallaLogin').style.display = 'none';
-        iniciarEscaner();
+        document.getElementById('pantallaEscaner').style.display = 'block';
       } else alert("PIN Incorrecto");
     }
 
-    function iniciarEscaner() {
-      document.getElementById('pantallaEscaner').style.display = 'block';
-      if (!html5QrcodeScanner) {
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-        html5QrcodeScanner.render((texto) => {
-          html5QrcodeScanner.pause();
-          let id = texto.includes("id=") ? new URLSearchParams(texto.split('?')[1]).get('id') : texto;
-          procesarCliente(id);
-        }, () => {});
-      } else {
-        html5QrcodeScanner.resume();
-      }
-    }
+    function buscarManual() { procesarCliente(document.getElementById('txtBuscar').value); }
 
-    function buscarManual() {
-      if (html5QrcodeScanner) html5QrcodeScanner.pause();
-      procesarCliente(document.getElementById('txtBuscar').value);
-    }
-
-    async function procesarCliente(criterio) {
+    async function procesarCliente(id) {
       document.getElementById('pantallaEscaner').style.display = 'none';
-      const res = await llamarAPI({ accion: 'buscarCliente', criterio: criterio });
+      const res = await llamarAPI({ accion: 'buscarCliente', criterio: id });
       if (res.exito) {
-        clienteSeleccionado = res.cliente;
+        clienteSelec = res.cliente;
         document.getElementById('pantallaAcciones').style.display = 'block';
         document.getElementById('lblClienteNombre').innerText = res.cliente.nombre;
         document.getElementById('lblClienteStats').innerText = `Sellos: ${res.balance.sellosActuales}/${res.balance.totalMeta}`;
@@ -137,27 +117,21 @@
       }
     }
 
-    async function registrarCompra(cantidad) {
+    async function registrar(cant) {
       document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'registrarCompra', id: clienteSeleccionado.idCliente, cantidad: cantidad, pin: pinActual });
+      const res = await llamarAPI({ accion: 'registrarCompra', id: clienteSelec.idCliente, cantidad: cant, pin: pinActual });
       alert(res.mensaje);
-      volverInicio();
+      window.location.href = window.location.pathname; // Limpia la URL
     }
 
-    async function canjearRecompensa() {
+    async function canjear() {
       document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'canjearPremio', id: clienteSeleccionado.idCliente, pin: pinActual });
+      const res = await llamarAPI({ accion: 'canjearPremio', id: clienteSelec.idCliente, pin: pinActual });
       alert(res.mensaje);
-      volverInicio();
+      window.location.href = window.location.pathname;
     }
 
-    function volverInicio() {
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      document.getElementById('txtBuscar').value = '';
-      iniciarEscaner();
-    }
-
-    function mostrarLoader(show) { document.getElementById('loader').style.display = show ? 'block' : 'none'; }
+    function volverInicio() { window.location.href = window.location.pathname; }
   </script>
 </body>
 </html>
