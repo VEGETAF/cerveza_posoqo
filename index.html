@@ -1,266 +1,160 @@
+<!-- ARCHIVO: index.html (Para GitHub Pages) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>POSOQO | Terminal de Barra</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#000000">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>POSOQO | Terminal Personal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --bg-dark: #000; --card-bg: #111; --gold: #F59E0B; --text-main: #FFF; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    body { background-color: var(--bg-dark); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 14px; }
-    .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px; }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
-    .card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid #333; }
-    .input-field { width: 100%; background: #222; border: 1px solid #444; border-radius: 12px; padding: 15px; color: #FFF; font-size: 1.2rem; text-align: center; margin-bottom: 15px; }
-    .btn { width: 100%; padding: 15px; border-radius: 12px; font-size: 1rem; font-weight: 700; border: none; cursor: pointer; margin-bottom: 10px; }
+    :root { --bg: #000; --card: #111; --gold: #F59E0B; --text: #FFF; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 450px; }
+    .box { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 20px; margin-bottom: 20px; }
+    input { width: 100%; background: #222; border: 1px solid #444; border-radius: 10px; padding: 15px; color: #FFF; text-align: center; font-size: 1.2rem; margin-bottom: 15px; }
+    button { width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 1rem; margin-bottom: 10px; }
     .btn-gold { background: var(--gold); color: #000; }
     .btn-outline { background: transparent; border: 1px solid #555; color: #FFF; }
-    .btn-green { background: #10B981; color: #FFF; }
-    .grid-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-    .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 20px; }
-    .instruccion { text-align: center; padding: 20px; background: #222; border-radius: 12px; border: 1px dashed #555; margin-bottom: 20px; }
-    #qr-reader { width: 100%; overflow: hidden; border-radius: 12px; margin: 0 auto 12px; }
-    #qr-reader video { border-radius: 12px; }
-    .nota { color: #aaa; font-size: .82rem; line-height: 1.4; text-align: center; margin: 4px 0 12px; }
-    .estado { color: var(--gold); font-size: .9rem; text-align: center; margin-bottom: 10px; }
+    .btn-green { background: #10B981; color: #000; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .stat-box { background: #222; padding: 15px; border-radius: 10px; text-align: center; border: 1px dashed #555; }
+    .stat-box h4 { margin: 0 0 5px 0; color: var(--gold); }
+    .stat-box p { margin: 0; font-size: 1.5rem; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <div class="header"><h1>POSOQO</h1><p>Barra</p></div>
 
-    <div id="pantallaLogin" class="card" style="display: none;">
-      <input type="password" id="txtPin" class="input-field" placeholder="PIN Maestro" autocomplete="current-password">
-      <button class="btn btn-gold" onclick="iniciarSesion()">Acceder</button>
-    </div>
+<div class="container">
+  <h2 style="text-align: center; color: var(--gold);">POSOQO Barra</h2>
 
-    <div id="pantallaEscaner" class="card" style="display: none;">
-      <div class="instruccion">
-        <p style="font-size: 2rem;">📸</p>
-        <p style="color: #FFF; font-weight: bold;">Escanea el QR de la tarjeta POSOQO</p>
-        <p class="nota">Permite el acceso a la cámara cuando el navegador lo solicite.</p>
-      </div>
-      <div id="qr-reader" style="display:none;"></div>
-      <p id="estadoEscaner" class="estado" aria-live="polite"></p>
-      <button id="btnAbrirCamara" class="btn btn-gold" onclick="abrirCamara()">Abrir cámara y escanear QR</button>
-      <button id="btnCerrarCamara" class="btn btn-outline" onclick="cerrarCamara()" style="display:none;">Cerrar cámara</button>
-      <input type="text" id="txtBuscar" class="input-field" placeholder="ID manual (ej. CLI-001)" autocomplete="off">
-      <button class="btn btn-outline" onclick="buscarManual()">Buscar Cliente</button>
-    </div>
-
-    <div id="loader" class="loader">Procesando...</div>
-
-    <div id="pantallaAcciones" class="card" style="display: none;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 id="lblClienteNombre" style="color: var(--gold);">Nombre</h2>
-        <p id="lblClienteStats">Sellos: 0/9</p>
-      </div>
-      <div class="grid-botones">
-        <button class="btn btn-outline" onclick="registrar(1)">+1 Chop</button>
-        <button class="btn btn-outline" onclick="registrar(2)">+2 Chops</button>
-        <button class="btn btn-outline" onclick="registrar(3)">+3 Chops</button>
-        <button class="btn btn-outline" onclick="registrar(4)">+4 Chops</button>
-      </div>
-      <button id="btnCanjear" class="btn btn-green" onclick="canjear()" style="display: none;">Entregar Jarra</button>
-      <button class="btn btn-outline" onclick="volverInicio()" style="margin-top: 20px;">Volver</button>
-    </div>
+  <div id="pantallaLogin" class="box" style="display:none;">
+    <input type="password" id="txtPin" placeholder="PIN de Personal">
+    <button class="btn-gold" onclick="iniciarSesion()">Acceder</button>
   </div>
 
-  <script>
-    // URL de la implementación web de Google Apps Script.
-    const API_URL = "https://script.google.com/macros/s/AKfycbzfzht2jY6PkRzQbiCKcFocs0p9zF0R93GndHu0LTMeYg25eYJYl-3nsnuTEf21EuPg/exec";
-    let pinActual = localStorage.getItem('posoqo_pin') || "";
-    let clienteSelec = null;
-    let lectorQR = null;
-    let camaraActiva = false;
-    let procesandoQR = false;
+  <div id="pantallaEspera" class="box" style="display:none; text-align: center;">
+    <p style="font-size: 3rem; margin: 0;">📸</p>
+    <p>Usa la cámara nativa de tu celular para escanear el QR del cliente.</p>
+    <hr style="border-color:#333; margin: 20px 0;">
+    <p style="color: #aaa; font-size: 0.9rem;">O ingresa el ID manualmente:</p>
+    <input type="text" id="txtBuscar" placeholder="CLI-001">
+    <button class="btn-outline" onclick="buscarManual()">Buscar Cliente</button>
+  </div>
 
-    window.onload = () => {
-      const params = new URLSearchParams(window.location.search);
-      const idEscaneado = params.get('id');
-      if (!pinActual) {
-        document.getElementById('pantallaLogin').style.display = 'block';
-      } else if (idEscaneado) {
-        procesarCliente(idEscaneado);
-      } else {
-        document.getElementById('pantallaEscaner').style.display = 'block';
+  <div id="pantallaAcciones" class="box" style="display:none;">
+    <h2 id="lblNombre" style="margin-top: 0; text-align: center;">Nombre</h2>
+    
+    <div class="grid-2">
+      <div class="stat-box">
+        <h4>🍺 Cervezas</h4>
+        <p id="statCerveza">0/9</p>
+        <button class="btn-outline" style="margin-top: 10px;" onclick="sumar('cerveza', 1)">+1 Chop</button>
+      </div>
+      <div class="stat-box">
+        <h4>🍴 Menús</h4>
+        <p id="statMenu">0/24</p>
+        <button class="btn-outline" style="margin-top: 10px;" onclick="sumar('menu', 1)">+1 Menú</button>
+      </div>
+    </div>
+
+    <hr style="border-color:#333; margin: 20px 0;">
+    
+    <button id="btnCanjearJarra" class="btn-green" style="display:none;" onclick="canjear('jarra')">Entregar Jarra Gratis</button>
+    <button id="btnCanjearPiqueo" class="btn-green" style="display:none;" onclick="canjear('piqueo')">Entregar Piqueo Gratis</button>
+    
+    <button class="btn-outline" style="margin-top: 10px;" onclick="volver()">Escanear Otro</button>
+  </div>
+</div>
+
+<script>
+  // ==========================================
+  // REEMPLAZA ESTO CON LA URL DE TU APPS SCRIPT (NUEVA IMPLEMENTACION)
+  const API_URL = "https://script.google.com/macros/s/TU_NUEVO_ENLACE/exec";
+  // ==========================================
+  
+  let pinActual = localStorage.getItem('posoqo_admin_pin') || "";
+  let idCliente = null;
+
+  window.onload = () => {
+    if(!pinActual) {
+      document.getElementById('pantallaLogin').style.display = 'block';
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idQR = urlParams.get('id');
+      if(idQR) cargarCliente(idQR);
+      else document.getElementById('pantallaEspera').style.display = 'block';
+    }
+  };
+
+  async function llamarAPI(params) {
+    const url = new URL(API_URL);
+    url.searchParams.append('api', 'true');
+    Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+    const res = await fetch(url).then(r => r.json());
+    return res;
+  }
+
+  async function iniciarSesion() {
+    const pin = document.getElementById('txtPin').value;
+    const res = await llamarAPI({ accion: 'validarPIN', pin: pin });
+    if(res.exito) {
+      localStorage.setItem('posoqo_admin_pin', pin);
+      window.location.reload();
+    } else alert("PIN Incorrecto");
+  }
+
+  function buscarManual() {
+    const id = document.getElementById('txtBuscar').value;
+    if(id) cargarCliente(id);
+  }
+
+  async function cargarCliente(id) {
+    document.getElementById('pantallaEspera').style.display = 'none';
+    const res = await llamarAPI({ accion: 'obtenerEstado', id: id });
+    
+    if(res.exito) {
+      idCliente = id;
+      document.getElementById('pantallaAcciones').style.display = 'block';
+      document.getElementById('lblNombre').innerText = res.cliente.nombre;
+      
+      let cervezas = res.saldos.cerveza % 9;
+      let menus = res.saldos.menu % 24;
+      
+      document.getElementById('statCerveza').innerText = `${cervezas}/9`;
+      document.getElementById('statMenu').innerText = `${menus}/24`;
+      
+      // Mostrar botones de canje si cumplen la meta
+      document.getElementById('btnCanjearJarra').style.display = (res.saldos.cerveza >= 9) ? 'block' : 'none';
+      document.getElementById('btnCanjearPiqueo').style.display = (res.saldos.menu >= 24) ? 'block' : 'none';
+      
+      // Lógica de alerta para el 50% de descuento en el menú (cada 6 tickets)
+      if (menus > 0 && menus % 6 === 0) {
+        alert(`¡ATENCIÓN! Este es el ticket #${menus}. Corresponde aplicar 50% de descuento en este menú.`);
       }
-    };
-
-    async function llamarAPI(params) {
-      document.getElementById('loader').style.display = 'block';
-      try {
-        const url = new URL(API_URL);
-        url.searchParams.append('api', 'true');
-        Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-        const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const datos = await res.json();
-        return datos;
-      } catch (e) {
-        console.error('Error llamando a Apps Script:', e);
-        return { exito: false, mensaje: 'No se pudo conectar con Google Apps Script. Verifica la URL, la implementación y los permisos de acceso.' };
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
+      
+    } else {
+      alert("Cliente no encontrado.");
+      volver();
     }
+  }
 
-    async function iniciarSesion() {
-      const pin = document.getElementById('txtPin').value.trim();
-      if (!pin) return alert('Ingresa el PIN.');
-      const res = await llamarAPI({ accion: 'validarPIN', pin: pin });
-      if (res.exito) {
-        pinActual = pin;
-        localStorage.setItem('posoqo_pin', pin);
-        document.getElementById('pantallaLogin').style.display = 'none';
-        document.getElementById('pantallaEscaner').style.display = 'block';
-      } else alert(res.mensaje || 'PIN incorrecto.');
+  async function sumar(tipo, cant) {
+    const res = await llamarAPI({ accion: 'registrarConsumo', id: idCliente, tipo: tipo, cant: cant, pin: pinActual });
+    alert(res.mensaje);
+    if(res.exito) cargarCliente(idCliente); // Recargar datos
+  }
+
+  async function canjear(tipo) {
+    if(confirm(`¿Confirmas la entrega de ${tipo}?`)) {
+      const res = await llamarAPI({ accion: 'canjear', id: idCliente, tipo: tipo, pin: pinActual });
+      alert(res.mensaje);
+      if(res.exito) cargarCliente(idCliente);
     }
+  }
 
-    async function abrirCamara() {
-      const estado = document.getElementById('estadoEscaner');
-      if (!window.Html5Qrcode) {
-        estado.textContent = 'No se pudo cargar el lector QR. Comprueba tu conexión a internet y recarga la página.';
-        return;
-      }
-      if (!window.isSecureContext) {
-        estado.textContent = 'La cámara requiere una página HTTPS. Abre la página publicada en GitHub Pages mediante https://';
-        return;
-      }
-      if (camaraActiva) return;
-
-      const lector = document.getElementById('qr-reader');
-      lector.style.display = 'block';
-      document.getElementById('btnAbrirCamara').style.display = 'none';
-      document.getElementById('btnCerrarCamara').style.display = 'block';
-      estado.textContent = 'Solicitando permiso para usar la cámara…';
-
-      try {
-        lectorQR = new Html5Qrcode('qr-reader');
-        await lectorQR.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 230, height: 230 }, aspectRatio: 1.0 },
-          async (textoLeido) => {
-            if (procesandoQR) return;
-            procesandoQR = true;
-            estado.textContent = 'QR leído. Buscando cliente…';
-            const id = extraerIdCliente(textoLeido);
-            await cerrarCamara();
-            if (!id) {
-              procesandoQR = false;
-              estado.textContent = 'El QR no contiene un ID de cliente reconocido.';
-              return;
-            }
-            document.getElementById('txtBuscar').value = id;
-            await procesarCliente(id);
-          },
-          () => { /* Los errores de lectura por fotograma son normales; se sigue intentando. */ }
-        );
-        camaraActiva = true;
-        estado.textContent = 'Cámara activa. Apunta al código QR de la tarjeta.';
-      } catch (e) {
-        console.error('No se pudo iniciar la cámara:', e);
-        lector.style.display = 'none';
-        document.getElementById('btnAbrirCamara').style.display = 'block';
-        document.getElementById('btnCerrarCamara').style.display = 'none';
-        estado.textContent = 'No se pudo abrir la cámara. Revisa los permisos del navegador y que otra aplicación no la esté usando.';
-        if (lectorQR) {
-          try { await lectorQR.clear(); } catch (_) {}
-          lectorQR = null;
-        }
-      }
-    }
-
-    async function cerrarCamara() {
-      if (lectorQR) {
-        try {
-          if (camaraActiva) await lectorQR.stop();
-        } catch (e) { console.warn('No se pudo detener la cámara limpiamente:', e); }
-        try { await lectorQR.clear(); } catch (_) {}
-      }
-      lectorQR = null;
-      camaraActiva = false;
-      const lector = document.getElementById('qr-reader');
-      lector.innerHTML = '';
-      lector.style.display = 'none';
-      document.getElementById('btnAbrirCamara').style.display = 'block';
-      document.getElementById('btnCerrarCamara').style.display = 'none';
-    }
-
-    function extraerIdCliente(texto) {
-      const valor = String(texto || '').trim();
-      if (!valor) return '';
-      // Acepta QR con una URL que tenga ?id=CLI-001.
-      try {
-        const url = new URL(valor);
-        const id = url.searchParams.get('id');
-        if (id) return id.trim();
-      } catch (_) { /* El contenido puede ser un ID de cliente sin URL. */ }
-      // Acepta también QR que contenga directamente el ID, por ejemplo CLI-001.
-      if (!/^https?:\/\//i.test(valor)) return valor;
-      return '';
-    }
-
-    async function buscarManual() {
-      const id = document.getElementById('txtBuscar').value.trim();
-      if (!id) return alert('Escribe el ID del cliente.');
-      await cerrarCamara();
-      await procesarCliente(id);
-    }
-
-    async function procesarCliente(id) {
-      const criterio = String(id || '').trim();
-      if (!criterio) {
-        document.getElementById('pantallaEscaner').style.display = 'block';
-        alert('No se recibió un ID de cliente.');
-        return;
-      }
-      document.getElementById('pantallaEscaner').style.display = 'none';
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'buscarCliente', criterio: criterio });
-      if (res.exito) {
-        clienteSelec = res.cliente;
-        document.getElementById('pantallaAcciones').style.display = 'block';
-        document.getElementById('lblClienteNombre').innerText = res.cliente.nombre;
-        document.getElementById('lblClienteStats').innerText = `Sellos: ${res.balance.sellosActuales}/${res.balance.totalMeta}`;
-        document.getElementById('btnCanjear').style.display = res.balance.tienePremioListo ? 'block' : 'none';
-      } else {
-        alert(res.mensaje || 'No se encontró al cliente.');
-        document.getElementById('pantallaEscaner').style.display = 'block';
-      }
-      procesandoQR = false;
-    }
-
-    async function registrar(cant) {
-      if (!clienteSelec) return alert('Primero selecciona un cliente.');
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'registrarCompra', id: clienteSelec.idCliente, cantidad: cant, pin: pinActual });
-      alert(res.mensaje || (res.exito ? 'Compra registrada.' : 'No se pudo registrar la compra.'));
-      volverInicio();
-    }
-
-    async function canjear() {
-      if (!clienteSelec) return alert('Primero selecciona un cliente.');
-      if (!confirm('¿Confirmas el canje del premio para este cliente?')) return;
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'canjearPremio', id: clienteSelec.idCliente, pin: pinActual });
-      alert(res.mensaje || (res.exito ? 'Canje procesado.' : 'No se pudo procesar el canje.'));
-      volverInicio();
-    }
-
-    async function volverInicio() {
-      await cerrarCamara();
-      clienteSelec = null;
-      procesandoQR = false;
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      document.getElementById('pantallaEscaner').style.display = 'block';
-      document.getElementById('txtBuscar').value = '';
-      document.getElementById('estadoEscaner').textContent = '';
-    }
-  </script>
+  function volver() {
+    window.location.href = window.location.pathname; // Limpia la URL
+  }
+</script>
 </body>
 </html>
