@@ -1,4 +1,3 @@
-<!-- ARCHIVO: index.html (Para GitHub Pages) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,24 +7,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
     :root { --bg: #000; --card: #111; --gold: #F59E0B; --text: #FFF; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 450px; }
-    .box { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 20px; margin-bottom: 20px; }
-    input { width: 100%; background: #222; border: 1px solid #444; border-radius: 10px; padding: 15px; color: #FFF; text-align: center; font-size: 1.2rem; margin-bottom: 15px; }
-    button { width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 1rem; margin-bottom: 10px; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 14px; display: flex; justify-content: center; min-height: 100vh;}
+    .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;}
+    .header { text-align: center; margin-bottom: 5px; }
+    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); margin:0; }
+    .box { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 20px; }
+    input { width: 100%; background: #222; border: 1px solid #444; border-radius: 10px; padding: 15px; color: #FFF; text-align: center; font-size: 1.2rem; margin-bottom: 15px; box-sizing: border-box;}
+    button { width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 0.95rem; margin-bottom: 10px; }
     .btn-gold { background: var(--gold); color: #000; }
     .btn-outline { background: transparent; border: 1px solid #555; color: #FFF; }
-    .btn-green { background: #10B981; color: #000; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .btn-green { background: #10B981; color: #000; font-size: 1rem; padding: 15px;}
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
     .stat-box { background: #222; padding: 15px; border-radius: 10px; text-align: center; border: 1px dashed #555; }
-    .stat-box h4 { margin: 0 0 5px 0; color: var(--gold); }
-    .stat-box p { margin: 0; font-size: 1.5rem; font-weight: bold; }
+    .stat-box h4 { margin: 0 0 5px 0; color: var(--gold); font-size: 1.2rem;}
+    .stat-box p { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: bold; }
+    .grid-botones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .grid-botones button { margin: 0; padding: 10px 5px; font-size: 0.9rem;}
+    .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 20px; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2 style="text-align: center; color: var(--gold);">POSOQO Barra</h2>
+  <div class="header">
+    <h1>POSOQO</h1>
+    <p style="margin: 5px 0 0 0; color: #aaa;">Barra</p>
+  </div>
 
   <div id="pantallaLogin" class="box" style="display:none;">
     <input type="password" id="txtPin" placeholder="PIN de Personal">
@@ -40,20 +47,35 @@
     <input type="text" id="txtBuscar" placeholder="CLI-001">
     <button class="btn-outline" onclick="buscarManual()">Buscar Cliente</button>
   </div>
+  
+  <div id="loader" class="loader">Procesando...</div>
 
   <div id="pantallaAcciones" class="box" style="display:none;">
-    <h2 id="lblNombre" style="margin-top: 0; text-align: center;">Nombre</h2>
+    <h2 id="lblNombre" style="margin-top: 0; text-align: center; color: var(--gold);">Nombre</h2>
     
     <div class="grid-2">
+      <!-- PANEL CERVEZA -->
       <div class="stat-box">
         <h4>🍺 Cervezas</h4>
         <p id="statCerveza">0/9</p>
-        <button class="btn-outline" style="margin-top: 10px;" onclick="sumar('cerveza', 1)">+1 Chop</button>
+        <div class="grid-botones">
+          <button class="btn-outline" onclick="sumar('cerveza', 1)">+1</button>
+          <button class="btn-outline" onclick="sumar('cerveza', 2)">+2</button>
+          <button class="btn-outline" onclick="sumar('cerveza', 3)">+3</button>
+          <button class="btn-outline" onclick="sumar('cerveza', 4)">+4</button>
+        </div>
       </div>
+      
+      <!-- PANEL MENÚ -->
       <div class="stat-box">
         <h4>🍴 Menús</h4>
         <p id="statMenu">0/24</p>
-        <button class="btn-outline" style="margin-top: 10px;" onclick="sumar('menu', 1)">+1 Menú</button>
+        <div class="grid-botones">
+          <button class="btn-outline" onclick="sumar('menu', 1)">+1</button>
+          <button class="btn-outline" onclick="sumar('menu', 2)">+2</button>
+          <button class="btn-outline" onclick="sumar('menu', 3)">+3</button>
+          <button class="btn-outline" onclick="sumar('menu', 4)">+4</button>
+        </div>
       </div>
     </div>
 
@@ -87,11 +109,19 @@
   };
 
   async function llamarAPI(params) {
+    document.getElementById('loader').style.display = 'block';
     const url = new URL(API_URL);
     url.searchParams.append('api', 'true');
     Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-    const res = await fetch(url).then(r => r.json());
-    return res;
+    
+    try {
+      const res = await fetch(url).then(r => r.json());
+      document.getElementById('loader').style.display = 'none';
+      return res;
+    } catch(e) {
+      document.getElementById('loader').style.display = 'none';
+      return { exito: false, mensaje: "Error de conexión" };
+    }
   }
 
   async function iniciarSesion() {
@@ -110,6 +140,8 @@
 
   async function cargarCliente(id) {
     document.getElementById('pantallaEspera').style.display = 'none';
+    document.getElementById('pantallaAcciones').style.display = 'none';
+    
     const res = await llamarAPI({ accion: 'obtenerEstado', id: id });
     
     if(res.exito) {
@@ -123,37 +155,39 @@
       document.getElementById('statCerveza').innerText = `${cervezas}/9`;
       document.getElementById('statMenu').innerText = `${menus}/24`;
       
-      // Mostrar botones de canje si cumplen la meta
       document.getElementById('btnCanjearJarra').style.display = (res.saldos.cerveza >= 9) ? 'block' : 'none';
       document.getElementById('btnCanjearPiqueo').style.display = (res.saldos.menu >= 24) ? 'block' : 'none';
       
-      // Lógica de alerta para el 50% de descuento en el menú (cada 6 tickets)
       if (menus > 0 && menus % 6 === 0) {
         alert(`¡ATENCIÓN! Este es el ticket #${menus}. Corresponde aplicar 50% de descuento en este menú.`);
       }
       
     } else {
-      alert("Cliente no encontrado.");
+      alert(res.mensaje || "Cliente no encontrado.");
       volver();
     }
   }
 
   async function sumar(tipo, cant) {
+    document.getElementById('pantallaAcciones').style.display = 'none';
     const res = await llamarAPI({ accion: 'registrarConsumo', id: idCliente, tipo: tipo, cant: cant, pin: pinActual });
     alert(res.mensaje);
-    if(res.exito) cargarCliente(idCliente); // Recargar datos
+    if(res.exito) cargarCliente(idCliente);
+    else document.getElementById('pantallaAcciones').style.display = 'block';
   }
 
   async function canjear(tipo) {
     if(confirm(`¿Confirmas la entrega de ${tipo}?`)) {
+      document.getElementById('pantallaAcciones').style.display = 'none';
       const res = await llamarAPI({ accion: 'canjear', id: idCliente, tipo: tipo, pin: pinActual });
       alert(res.mensaje);
       if(res.exito) cargarCliente(idCliente);
+      else document.getElementById('pantallaAcciones').style.display = 'block';
     }
   }
 
   function volver() {
-    window.location.href = window.location.pathname; // Limpia la URL
+    window.location.href = window.location.pathname; 
   }
 </script>
 </body>
