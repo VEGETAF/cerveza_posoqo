@@ -3,192 +3,423 @@
 <head>
   <meta charset="UTF-8">
   <title>POSOQO | Terminal Personal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    :root { --bg: #000; --card: #111; --gold: #F59E0B; --text: #FFF; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 14px; display: flex; justify-content: center; min-height: 100vh;}
-    .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;}
+    :root { --bg: #000; --card: #111; --gold: #F59E0B; --text: #FFF; --muted:#aaa; --green:#10B981; --red:#ef4444; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 14px; display: flex; justify-content: center; min-height: 100vh; }
+    button, input { font: inherit; }
+    .container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
     .header { text-align: center; margin-bottom: 5px; }
-    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); margin:0; }
+    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); margin:0; letter-spacing:1px; }
     .box { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 20px; }
-    input { width: 100%; background: #222; border: 1px solid #444; border-radius: 10px; padding: 15px; color: #FFF; text-align: center; font-size: 1.2rem; margin-bottom: 15px; box-sizing: border-box;}
-    button { width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 0.95rem; margin-bottom: 10px; }
+    input { width: 100%; background: #222; border: 1px solid #444; border-radius: 10px; padding: 15px; color: #FFF; text-align: center; font-size: 1.05rem; margin-bottom: 12px; }
+    input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+    button { width: 100%; padding: 13px; border-radius: 10px; font-weight: 800; border: none; cursor: pointer; font-size: .95rem; margin-bottom: 10px; touch-action: manipulation; }
+    button:disabled { opacity:.55; cursor:wait; }
     .btn-gold { background: var(--gold); color: #000; }
     .btn-outline { background: transparent; border: 1px solid #555; color: #FFF; }
-    .btn-green { background: #10B981; color: #000; font-size: 1rem; padding: 15px;}
+    .btn-green { background: var(--green); color: #000; font-size: 1rem; padding: 15px; }
+    .btn-stop { background:#2a1515; border:1px solid #743333; color:#fff; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
     .stat-box { background: #222; padding: 15px; border-radius: 10px; text-align: center; border: 1px dashed #555; }
-    .stat-box h4 { margin: 0 0 5px 0; color: var(--gold); font-size: 1.2rem;}
-    .stat-box p { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: bold; }
-    .grid-botones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-    .grid-botones button { margin: 0; padding: 10px 5px; font-size: 0.9rem;}
-    .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 20px; }
+    .stat-box h4 { margin: 0 0 5px 0; color: var(--gold); font-size: 1.1rem; }
+    .stat-box p { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 800; }
+    .grid-botones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    .grid-botones button { margin: 0; padding: 11px 4px; font-size: .88rem; }
+    .loader { text-align: center; color: var(--gold); font-weight: 700; display: none; padding: 14px; }
+    .status { border-radius:10px; padding:11px 12px; background:#202020; color:#ddd; font-size:.86rem; line-height:1.45; text-align:center; margin: 10px 0 14px; }
+    .status.error { color:#fecaca; border:1px solid #7f1d1d; }
+    .status.ok { color:#bbf7d0; border:1px solid #166534; }
+    #reader { width:100%; overflow:hidden; border-radius:14px; background:#050505; margin:12px 0; }
+    #reader video { border-radius:12px; object-fit:cover; }
+    #reader img { max-width:100%; }
+    .hint { color:var(--muted); font-size:.82rem; line-height:1.5; text-align:center; }
+    .hidden { display:none !important; }
+    hr { border:0; border-top:1px solid #333; margin:20px 0; }
+    @media (min-width: 390px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-
 <div class="container">
   <div class="header">
     <h1>POSOQO</h1>
-    <p style="margin: 5px 0 0 0; color: #aaa;">Barra</p>
+    <p style="margin:5px 0 0;color:#aaa">Terminal de Barra</p>
   </div>
 
-  <div id="pantallaLogin" class="box" style="display:none;">
-    <input type="password" id="txtPin" placeholder="PIN de Personal">
-    <button class="btn-gold" onclick="iniciarSesion()">Acceder</button>
+  <div id="pantallaLogin" class="box">
+    <p style="text-align:center;margin-top:0">Acceso para personal autorizado</p>
+    <input type="password" id="txtPin" placeholder="PIN de Personal" inputmode="numeric" autocomplete="current-password" aria-label="PIN de personal">
+    <button id="btnAcceder" class="btn-gold" onclick="iniciarSesion()">Acceder</button>
+    <p class="hint">El PIN se mantiene solo en la memoria de esta página y no se guarda en el navegador.</p>
   </div>
 
-  <div id="pantallaEspera" class="box" style="display:none; text-align: center;">
-    <p style="font-size: 3rem; margin: 0;">📸</p>
-    <p>Usa la cámara nativa de tu celular para escanear el QR del cliente.</p>
-    <hr style="border-color:#333; margin: 20px 0;">
-    <p style="color: #aaa; font-size: 0.9rem;">O ingresa el ID manualmente:</p>
-    <input type="text" id="txtBuscar" placeholder="CLI-001">
-    <button class="btn-outline" onclick="buscarManual()">Buscar Cliente</button>
+  <div id="pantallaEspera" class="box hidden">
+    <p style="font-size:2.8rem;margin:0;text-align:center">📷</p>
+    <h2 style="font-size:1.15rem;text-align:center;margin:8px 0">Escanear tarjeta POSOQO</h2>
+    <p class="hint">Pulsa el botón para abrir la cámara trasera y apunta al código QR del cliente.</p>
+    <div id="estadoEscaner" class="status" role="status" aria-live="polite">La cámara está apagada.</div>
+    <div id="reader"></div>
+    <button id="btnIniciarCamara" class="btn-gold" onclick="iniciarEscaner()">Abrir cámara y escanear QR</button>
+    <button id="btnDetenerCamara" class="btn-stop hidden" onclick="detenerEscanerUI()">Detener cámara</button>
+    <hr>
+    <p style="color:#aaa;font-size:.9rem;text-align:center;margin-bottom:10px">O ingresa el ID manualmente</p>
+    <input type="text" id="txtBuscar" placeholder="Ej. CLI-001" autocomplete="off" autocapitalize="characters" aria-label="ID de cliente">
+    <button class="btn-outline" onclick="buscarManual()">Buscar cliente</button>
+    <p class="hint">La página debe abrirse con HTTPS y el navegador debe tener permiso para usar la cámara.</p>
   </div>
-  
-  <div id="loader" class="loader">Procesando...</div>
 
-  <div id="pantallaAcciones" class="box" style="display:none;">
-    <h2 id="lblNombre" style="margin-top: 0; text-align: center; color: var(--gold);">Nombre</h2>
-    
+  <div id="loader" class="loader" role="status" aria-live="polite">Procesando...</div>
+
+  <div id="pantallaAcciones" class="box hidden">
+    <h2 id="lblNombre" style="margin-top:0;text-align:center;color:var(--gold);overflow-wrap:anywhere">Nombre del cliente</h2>
     <div class="grid-2">
-      <!-- PANEL CERVEZA -->
       <div class="stat-box">
         <h4>🍺 Cervezas</h4>
         <p id="statCerveza">0/9</p>
         <div class="grid-botones">
-          <button class="btn-outline" onclick="sumar('cerveza', 1)">+1</button>
-          <button class="btn-outline" onclick="sumar('cerveza', 2)">+2</button>
-          <button class="btn-outline" onclick="sumar('cerveza', 3)">+3</button>
-          <button class="btn-outline" onclick="sumar('cerveza', 4)">+4</button>
+          <button class="btn-outline" onclick="sumar('cerveza',1)">+1</button>
+          <button class="btn-outline" onclick="sumar('cerveza',2)">+2</button>
+          <button class="btn-outline" onclick="sumar('cerveza',3)">+3</button>
+          <button class="btn-outline" onclick="sumar('cerveza',4)">+4</button>
         </div>
       </div>
-      
-      <!-- PANEL MENÚ -->
       <div class="stat-box">
         <h4>🍴 Menús</h4>
         <p id="statMenu">0/24</p>
         <div class="grid-botones">
-          <button class="btn-outline" onclick="sumar('menu', 1)">+1</button>
-          <button class="btn-outline" onclick="sumar('menu', 2)">+2</button>
-          <button class="btn-outline" onclick="sumar('menu', 3)">+3</button>
-          <button class="btn-outline" onclick="sumar('menu', 4)">+4</button>
+          <button class="btn-outline" onclick="sumar('menu',1)">+1</button>
+          <button class="btn-outline" onclick="sumar('menu',2)">+2</button>
+          <button class="btn-outline" onclick="sumar('menu',3)">+3</button>
+          <button class="btn-outline" onclick="sumar('menu',4)">+4</button>
         </div>
       </div>
     </div>
-
-    <hr style="border-color:#333; margin: 20px 0;">
-    
-    <button id="btnCanjearJarra" class="btn-green" style="display:none;" onclick="canjear('jarra')">Entregar Jarra Gratis</button>
-    <button id="btnCanjearPiqueo" class="btn-green" style="display:none;" onclick="canjear('piqueo')">Entregar Piqueo Gratis</button>
-    
-    <button class="btn-outline" style="margin-top: 10px;" onclick="volver()">Escanear Otro</button>
+    <hr>
+    <button id="btnCanjearJarra" class="btn-green hidden" onclick="canjear('jarra')">Entregar jarra gratis</button>
+    <button id="btnCanjearPiqueo" class="btn-green hidden" onclick="canjear('piqueo')">Entregar piqueo gratis</button>
+    <button class="btn-outline" style="margin-top:10px" onclick="volver()">Escanear otro cliente</button>
   </div>
 </div>
 
 <script>
-  // ==========================================
-  // REEMPLAZA ESTO CON LA URL DE TU APPS SCRIPT (NUEVA IMPLEMENTACION)
-  const API_URL = "https://script.google.com/macros/s/AKfycbzX5vzES1vqECLbg1af4OAhTDbXYy1UJjN3OX-4RhiGvHpiBtZVzmIHwcxdJFYZTJ4/exec";
-  // ==========================================
-  
-  let pinActual = localStorage.getItem('posoqo_admin_pin') || "";
-  let idCliente = null;
+  // REEMPLAZA el marcador por la URL /exec de la NUEVA implementación de Apps Script.
+  // El backend debe implementar las acciones: validarPIN, obtenerEstado, registrarConsumo y canjear.
+  const API_URL = "https://script.google.com/macros/s/TU_NUEVO_ENLACE_AQUI/exec";
 
-  window.onload = () => {
-    if(!pinActual) {
-      document.getElementById('pantallaLogin').style.display = 'block';
-    } else {
-      const urlParams = new URLSearchParams(window.location.search);
-      const idQR = urlParams.get('id');
-      if(idQR) cargarCliente(idQR);
-      else document.getElementById('pantallaEspera').style.display = 'block';
+  let pinActual = "";              // No se almacena en localStorage.
+  let idCliente = null;
+  let lectorQR = null;
+  let escanerActivo = false;
+  let procesandoQR = false;
+  let camaraAutorizada = false;
+  let operacionEnCurso = false;
+  let idPendiente = null;
+
+  window.addEventListener('load', () => {
+    const parametros = new URLSearchParams(window.location.search);
+    const idURL = parametros.get('id');
+    if (idURL) {
+      idPendiente = extraerId(idURL) || idURL.trim();
+      // Quita el identificador de la barra de direcciones después de leerlo.
+      try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
     }
-  };
+    document.getElementById('txtPin').focus({preventScroll:true});
+  });
+
+  function apiConfigurada() {
+    return API_URL.startsWith('https://script.google.com/macros/s/') &&
+           !API_URL.includes('TU_NUEVO_ENLACE_AQUI') && API_URL.endsWith('/exec');
+  }
+
+  function mostrarLoader(visible, texto='Procesando...') {
+    const loader = document.getElementById('loader');
+    loader.textContent = texto;
+    loader.style.display = visible ? 'block' : 'none';
+  }
+
+  function mostrarEstadoEscaner(texto, tipo='') {
+    const el = document.getElementById('estadoEscaner');
+    el.textContent = texto;
+    el.className = 'status' + (tipo ? ' ' + tipo : '');
+  }
+
+  function mostrarPantalla(nombre) {
+    document.getElementById('pantallaLogin').classList.toggle('hidden', nombre !== 'login');
+    document.getElementById('pantallaEspera').classList.toggle('hidden', nombre !== 'espera');
+    document.getElementById('pantallaAcciones').classList.toggle('hidden', nombre !== 'acciones');
+  }
 
   async function llamarAPI(params) {
-    document.getElementById('loader').style.display = 'block';
-    const url = new URL(API_URL);
-    url.searchParams.append('api', 'true');
-    Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-    
+    if (!apiConfigurada()) {
+      return { exito:false, mensaje:'Falta configurar API_URL con la URL real de tu implementación de Google Apps Script.' };
+    }
+    mostrarLoader(true);
     try {
-      const res = await fetch(url).then(r => r.json());
-      document.getElementById('loader').style.display = 'none';
-      return res;
-    } catch(e) {
-      document.getElementById('loader').style.display = 'none';
-      return { exito: false, mensaje: "Error de conexión" };
+      const url = new URL(API_URL);
+      url.searchParams.set('api', 'true');
+      Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v)));
+      const respuesta = await fetch(url.toString(), { method:'GET', redirect:'follow', cache:'no-store' });
+      if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+      const texto = await respuesta.text();
+      let datos;
+      try { datos = JSON.parse(texto); }
+      catch (_) { throw new Error('El servidor no devolvió JSON. Revisa la URL, los permisos y el formato de la API de Apps Script.'); }
+      return datos;
+    } catch (error) {
+      const mensaje = error && error.message ? error.message : 'No se pudo conectar con Apps Script.';
+      return { exito:false, mensaje:'Error de conexión con Apps Script: ' + mensaje };
+    } finally {
+      mostrarLoader(false);
     }
   }
 
   async function iniciarSesion() {
-    const pin = document.getElementById('txtPin').value;
-    const res = await llamarAPI({ accion: 'validarPIN', pin: pin });
-    if(res.exito) {
-      localStorage.setItem('posoqo_admin_pin', pin);
-      window.location.reload();
-    } else alert("PIN Incorrecto");
+    if (operacionEnCurso) return;
+    const pin = document.getElementById('txtPin').value.trim();
+    if (!pin) { alert('Ingresa el PIN del personal.'); return; }
+    operacionEnCurso = true;
+    const boton = document.getElementById('btnAcceder');
+    boton.disabled = true;
+    try {
+      const res = await llamarAPI({ accion:'validarPIN', pin });
+      if (!res.exito) { alert(res.mensaje || 'PIN incorrecto.'); return; }
+      pinActual = pin; // Solo permanece en memoria mientras esta página esté abierta.
+      document.getElementById('txtPin').value = '';
+      mostrarPantalla('espera');
+      if (idPendiente) {
+        const id = idPendiente;
+        idPendiente = null;
+        await cargarCliente(id);
+      } else {
+        mostrarEstadoEscaner('Acceso correcto. Pulsa “Abrir cámara y escanear QR”.', 'ok');
+      }
+    } finally {
+      operacionEnCurso = false;
+      boton.disabled = false;
+    }
   }
 
-  function buscarManual() {
-    const id = document.getElementById('txtBuscar').value;
-    if(id) cargarCliente(id);
+  function extraerId(valorOriginal) {
+    const valor = String(valorOriginal || '').trim();
+    if (!valor) return null;
+    // Acepta QR directo (CLI-001) o URL que contenga ?id=CLI-001.
+    if (/^https?:\/\//i.test(valor)) {
+      try {
+        const url = new URL(valor);
+        const idQuery = url.searchParams.get('id');
+        if (idQuery) return extraerId(idQuery);
+        const ultimoSegmento = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() || '');
+        if (/^CLI-[A-Z0-9_-]+$/i.test(ultimoSegmento)) return ultimoSegmento;
+        return null;
+      } catch (_) { return null; }
+    }
+    // Impide que un QR arbitrario que no sea un ID se trate como identificador.
+    if (/^CLI-[A-Z0-9_-]+$/i.test(valor)) return valor.toUpperCase();
+    return null;
+  }
+
+  async function iniciarEscaner() {
+    if (!pinActual) { mostrarPantalla('login'); return; }
+    if (escanerActivo) return;
+    if (!window.Html5Qrcode) {
+      mostrarEstadoEscaner('No se cargó la biblioteca del lector QR. Comprueba tu conexión a internet y vuelve a cargar la página.', 'error');
+      return;
+    }
+    document.getElementById('btnIniciarCamara').disabled = true;
+    mostrarEstadoEscaner('Solicitando acceso a la cámara…');
+    try {
+      if (!lectorQR) {
+        lectorQR = new Html5Qrcode('reader', {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false
+        });
+      }
+      await lectorQR.start(
+        { facingMode:'environment' },
+        { fps:10, qrbox:{ width:250, height:250 }, aspectRatio:1.0 },
+        (textoLeido) => procesarQRLeido(textoLeido),
+        () => {} // Se ignoran los errores de cada fotograma mientras la cámara sigue buscando.
+      );
+      escanerActivo = true;
+      camaraAutorizada = true;
+      procesandoQR = false;
+      document.getElementById('btnIniciarCamara').classList.add('hidden');
+      document.getElementById('btnDetenerCamara').classList.remove('hidden');
+      mostrarEstadoEscaner('Cámara activa. Centra el QR del cliente dentro del recuadro.', 'ok');
+    } catch (error) {
+      escanerActivo = false;
+      const detalle = String(error && error.message ? error.message : error);
+      mostrarEstadoEscaner('No se pudo abrir la cámara. Verifica HTTPS, permiso de cámara y que ninguna otra aplicación la esté usando. ' + detalle, 'error');
+      document.getElementById('btnIniciarCamara').classList.remove('hidden');
+      document.getElementById('btnDetenerCamara').classList.add('hidden');
+    } finally {
+      document.getElementById('btnIniciarCamara').disabled = false;
+    }
+  }
+
+  async function detenerEscaner() {
+    if (lectorQR) {
+      try { if (escanerActivo) await lectorQR.stop(); } catch (_) {}
+      try { lectorQR.clear(); } catch (_) {}
+    }
+    lectorQR = null;
+    escanerActivo = false;
+    document.getElementById('btnIniciarCamara').classList.remove('hidden');
+    document.getElementById('btnDetenerCamara').classList.add('hidden');
+    document.getElementById('btnIniciarCamara').disabled = false;
+  }
+
+  async function detenerEscanerUI() {
+    await detenerEscaner();
+    mostrarEstadoEscaner('Cámara apagada. Pulsa el botón para escanear otro QR.');
+  }
+
+  async function procesarQRLeido(texto) {
+    if (procesandoQR || !escanerActivo) return;
+    const id = extraerId(texto);
+    if (!id) {
+      procesandoQR = true;
+      mostrarEstadoEscaner('El QR no contiene un ID POSOQO reconocido. Prueba con una tarjeta POSOQO.', 'error');
+      window.setTimeout(() => { procesandoQR = false; }, 1800);
+      return;
+    }
+    procesandoQR = true; // Evita múltiples lecturas del mismo QR en fotogramas consecutivos.
+    await detenerEscaner();
+    await cargarCliente(id);
+  }
+
+  async function buscarManual() {
+    const id = extraerId(document.getElementById('txtBuscar').value);
+    if (!id) { alert('Ingresa un ID válido, por ejemplo CLI-001.'); return; }
+    await detenerEscaner();
+    await cargarCliente(id);
   }
 
   async function cargarCliente(id) {
-    document.getElementById('pantallaEspera').style.display = 'none';
-    document.getElementById('pantallaAcciones').style.display = 'none';
-    
-    const res = await llamarAPI({ accion: 'obtenerEstado', id: id });
-    
-    if(res.exito) {
-      idCliente = id;
-      document.getElementById('pantallaAcciones').style.display = 'block';
-      document.getElementById('lblNombre').innerText = res.cliente.nombre;
-      
-      let cervezas = res.saldos.cerveza % 9;
-      let menus = res.saldos.menu % 24;
-      
-      document.getElementById('statCerveza').innerText = `${cervezas}/9`;
-      document.getElementById('statMenu').innerText = `${menus}/24`;
-      
-      document.getElementById('btnCanjearJarra').style.display = (res.saldos.cerveza >= 9) ? 'block' : 'none';
-      document.getElementById('btnCanjearPiqueo').style.display = (res.saldos.menu >= 24) ? 'block' : 'none';
-      
-      if (menus > 0 && menus % 6 === 0) {
-        alert(`¡ATENCIÓN! Este es el ticket #${menus}. Corresponde aplicar 50% de descuento en este menú.`);
-      }
-      
-    } else {
-      alert(res.mensaje || "Cliente no encontrado.");
-      volver();
+    if (!pinActual) { mostrarPantalla('login'); return; }
+    const idLimpio = extraerId(id);
+    if (!idLimpio) {
+      alert('El QR no contiene un ID POSOQO válido.');
+      await volverAEscanear(false);
+      return;
     }
+    mostrarPantalla('espera');
+    mostrarLoader(true, 'Buscando cliente…');
+    try {
+      const res = await llamarAPI({ accion:'obtenerEstado', id:idLimpio, pin:pinActual });
+      if (!res || !res.exito) {
+        alert((res && res.mensaje) || 'Cliente no encontrado.');
+        await volverAEscanear(camaraAutorizada);
+        return;
+      }
+      if (!res.cliente || !res.saldos || !Number.isFinite(Number(res.saldos.cerveza)) || !Number.isFinite(Number(res.saldos.menu))) {
+        alert('La API respondió, pero falta cliente.nombre o saldos.cerveza/saldos.menu. Revisa el formato de la respuesta en Code.gs.');
+        await volverAEscanear(camaraAutorizada);
+        return;
+      }
+      idCliente = res.cliente.idCliente || idLimpio;
+      document.getElementById('lblNombre').textContent = String(res.cliente.nombre || 'Cliente POSOQO');
+      const correspondeDescuento = actualizarSaldos(res.saldos);
+      mostrarPantalla('acciones');
+      document.getElementById('txtBuscar').value = '';
+      if (correspondeDescuento) {
+        alert(`¡ATENCIÓN! Este es el menú acumulado #${Number(res.saldos.menu)}. Corresponde aplicar 50% de descuento en este menú.`);
+      }
+    } catch (error) {
+      alert('No se pudo cargar el cliente. ' + (error.message || ''));
+      await volverAEscanear(camaraAutorizada);
+    } finally {
+      mostrarLoader(false);
+    }
+  }
+
+  function actualizarSaldos(saldos) {
+    const cerveza = Math.max(0, Number(saldos.cerveza) || 0);
+    const menu = Math.max(0, Number(saldos.menu) || 0);
+    document.getElementById('statCerveza').textContent = `${cerveza % 9}/9`;
+    document.getElementById('statMenu').textContent = `${menu % 24}/24`;
+    document.getElementById('btnCanjearJarra').classList.toggle('hidden', cerveza < 9);
+    document.getElementById('btnCanjearPiqueo').classList.toggle('hidden', menu < 24);
+    // Conserva la regla que tenía el código original: cada sexto menú requiere aviso de 50% de descuento.
+    return menu > 0 && menu % 6 === 0;
+  }
+
+  function bloquearAcciones(bloqueado) {
+    document.querySelectorAll('#pantallaAcciones button').forEach(b => b.disabled = bloqueado);
   }
 
   async function sumar(tipo, cant) {
-    document.getElementById('pantallaAcciones').style.display = 'none';
-    const res = await llamarAPI({ accion: 'registrarConsumo', id: idCliente, tipo: tipo, cant: cant, pin: pinActual });
-    alert(res.mensaje);
-    if(res.exito) cargarCliente(idCliente);
-    else document.getElementById('pantallaAcciones').style.display = 'block';
-  }
-
-  async function canjear(tipo) {
-    if(confirm(`¿Confirmas la entrega de ${tipo}?`)) {
-      document.getElementById('pantallaAcciones').style.display = 'none';
-      const res = await llamarAPI({ accion: 'canjear', id: idCliente, tipo: tipo, pin: pinActual });
-      alert(res.mensaje);
-      if(res.exito) cargarCliente(idCliente);
-      else document.getElementById('pantallaAcciones').style.display = 'block';
+    if (!idCliente || !pinActual || operacionEnCurso) return;
+    const etiqueta = tipo === 'cerveza' ? 'cerveza(s)' : 'menú(s)';
+    if (!confirm(`¿Confirmas registrar ${cant} ${etiqueta} para ${document.getElementById('lblNombre').textContent}?`)) return;
+    operacionEnCurso = true;
+    bloquearAcciones(true);
+    try {
+      const res = await llamarAPI({ accion:'registrarConsumo', id:idCliente, tipo, cant, pin:pinActual });
+      if (!res || !res.exito) {
+        alert((res && res.mensaje) || 'No se pudo registrar el consumo.');
+        return; // Mantiene la pantalla del cliente para volver a intentar.
+      }
+      alert(res.mensaje || 'Consumo registrado correctamente.');
+      idCliente = null;
+      await volverAEscanear(camaraAutorizada); // Tras dar los puntos, vuelve al escáner.
+    } finally {
+      operacionEnCurso = false;
+      bloquearAcciones(false);
     }
   }
 
-  function volver() {
-    window.location.href = window.location.pathname; 
+  async function canjear(tipo) {
+    if (!idCliente || !pinActual || operacionEnCurso) return;
+    const nombrePremio = tipo === 'jarra' ? 'la jarra gratis' : 'el piqueo gratis';
+    if (!confirm(`¿Confirmas la entrega de ${nombrePremio} a ${document.getElementById('lblNombre').textContent}?`)) return;
+    operacionEnCurso = true;
+    bloquearAcciones(true);
+    try {
+      const res = await llamarAPI({ accion:'canjear', id:idCliente, tipo, pin:pinActual });
+      if (!res || !res.exito) {
+        alert((res && res.mensaje) || 'No se pudo registrar el canje.');
+        return;
+      }
+      alert(res.mensaje || 'Canje registrado correctamente.');
+      idCliente = null;
+      await volverAEscanear(camaraAutorizada); // Tras canjear, vuelve al escáner.
+    } finally {
+      operacionEnCurso = false;
+      bloquearAcciones(false);
+    }
   }
+
+  async function volverAEscanear(intentarAutoCamara=false) {
+    await detenerEscaner();
+    idCliente = null;
+    mostrarPantalla('espera');
+    document.getElementById('txtBuscar').value = '';
+    procesandoQR = false;
+    mostrarEstadoEscaner(intentarAutoCamara
+      ? 'Volviendo al escáner…'
+      : 'Listo para escanear. Pulsa “Abrir cámara y escanear QR”.');
+    // Solo se intenta reabrir sin un nuevo clic si la cámara ya había sido autorizada en esta sesión.
+    if (intentarAutoCamara && pinActual && camaraAutorizada) {
+      await iniciarEscaner();
+    }
+  }
+
+  async function volver() {
+    await volverAEscanear(camaraAutorizada);
+  }
+
+  // Libera la cámara si el personal cambia de pestaña o sale de la página.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && escanerActivo) detenerEscaner();
+  });
+  window.addEventListener('pagehide', () => { if (escanerActivo) detenerEscaner(); });
 </script>
 </body>
 </html>
