@@ -370,7 +370,10 @@
     const cerveza = Math.max(0, Number(saldos.cerveza) || 0);
     const menu = Math.max(0, Number(saldos.menu) || 0);
     saldosActuales = { cerveza, menu };
-    document.getElementById('statCerveza').textContent = `${cerveza % 9}/9`;
+    // Si el saldo es múltiplo exacto de 9 y aún hay jarra pendiente, mostrar 9/9 (no 0/9).
+    // Al canjear la jarra, Code.gs resta 9 y el progreso vuelve a 0/9.
+    const avanceCerveza = (cerveza > 0 && cerveza % 9 === 0) ? 9 : (cerveza % 9);
+    document.getElementById('statCerveza').textContent = `${avanceCerveza}/9`;
     const avanceMenu = (menu > 0 && menu % 24 === 0) ? 24 : menu % 24;
     document.getElementById('statMenu').textContent = `${avanceMenu}/24`;
     document.getElementById('btnCanjearJarra').classList.toggle('hidden', cerveza < 9);
