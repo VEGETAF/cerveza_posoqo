@@ -45,6 +45,18 @@
     .hidden { display:none !important; }
     hr { border:0; border-top:1px solid #333; margin:20px 0; }
     @media (min-width: 390px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .discount-admin-panel { margin: 16px 0; padding: 15px; background:#191713; border:1px solid rgba(245,166,35,.35); border-radius:14px; }
+    .discount-admin-panel h3 { margin:0 0 7px; color:var(--gold); font-size:1rem; }
+    .discount-admin-panel p { margin:0 0 12px; color:#c7c7c7; font-size:.78rem; line-height:1.45; }
+    .discount-admin-list { display:flex; flex-direction:column; gap:8px; }
+    .discount-admin-button { margin:0; text-align:left; padding:12px; border:1px solid #5a482b; border-radius:10px; color:#ffe0a0; background:#302511; font-size:.82rem; line-height:1.4; }
+    .discount-admin-button.available { border-color:#d99a21; background:#3c2a0d; color:#fff0c9; }
+    .discount-admin-button.available:active { transform:scale(.99); }
+    .discount-admin-button.used { border-color:#1d805f; background:#0b382b; color:#b9ffe6; cursor:default; opacity:1; }
+    .discount-admin-button.locked { border-color:#343434; background:#1c1c1c; color:#808080; cursor:not-allowed; opacity:.85; }
+    .discount-admin-status { margin-top:9px; font-size:.74rem; color:#a8a8a8; line-height:1.4; }
+
   </style>
 </head>
 <body>
@@ -104,6 +116,14 @@
         </div>
       </div>
     </div>
+
+    <div class="discount-admin-panel">
+      <h3>🏷️ Descuentos de menú · 50 %</h3>
+      <p>Marca el descuento solo después de aplicarlo realmente en caja. Si el ticket 6 ya se utilizó anteriormente y aún no figura registrado, puedes registrarlo ahora.</p>
+      <div id="listaDescuentos" class="discount-admin-list"></div>
+      <div id="estadoDescuentos" class="discount-admin-status" aria-live="polite">Los descuentos se consultan desde Google Sheets.</div>
+    </div>
+
     <hr>
     <button id="btnCanjearJarra" class="btn-green hidden" onclick="canjear('jarra')">Entregar jarra gratis</button>
     <button id="btnCanjearPiqueo" class="btn-green hidden" onclick="canjear('piqueo')">Entregar piqueo gratis</button>
@@ -113,7 +133,7 @@
 
 <script>
   // REEMPLAZA el marcador por la URL /exec de la NUEVA implementación de Apps Script.
-  // El backend debe implementar las acciones: validarPIN, obtenerEstado, registrarConsumo y canjear.
+  // El backend debe implementar: validarPIN, obtenerEstado, registrarConsumo, canjear y registrarDescuento.
   const API_URL = "https://script.google.com/macros/s/AKfycbycw_zMY9NuaEDqBDM7QzEbzcvJqL5XqkwZgEqvuRBEeKJA3sk06yh3sQMlMQBP5Pgf/exec";
 
   let pinActual = sessionStorage.getItem('posoqo_admin_pin') || ""; // Se conserva solo en esta pestaña del navegador.
@@ -343,6 +363,7 @@
       idCliente = res.cliente.idCliente || idLimpio;
       document.getElementById('lblNombre').textContent = String(res.cliente.nombre || 'Cliente POSOQO');
       const correspondeDescuento = actualizarSaldos(res.saldos);
+      renderizarDescuentosMenu(Number(res.saldos.menu) || 0, res.saldos.descuentosUsados || []);
       mostrarPantalla('acciones');
       document.getElementById('txtBuscar').value = '';
       if (correspondeDescuento) {
@@ -367,8 +388,98 @@
     return menu > 0 && menu % 6 === 0;
   }
 
+  function normalizarHitosDescuento(valor) {
+    if (typeof valor === 'string') {
+      try { valor = JSON.parse(valor); } catch (_) { valor = valor.split(/[;,\s]+/).filter(Boolean); }
+    }
+    const permitidos = [6, 12, 18, 24];
+    if (Array.isArray(valor)) {
+      return [...new Set(valor.map(Number).filter(n => permitidos.includes(n)))].sort((a,b) => a-b);
+    }
+    if (valor && typeof valor === 'object') {
+      return permitidos.filter(n => valor[n] === true || valor[n] === 1 || String(valor[n]).toLowerCase() === 'true' || String(valor[n]).toLowerCase() === 'usado');
+    }
+    return [];
+  }
+
+  function renderizarDescuentosMenu(totalMenu, valorUsados) {
+    const contenedor = document.getElementById('listaDescuentos');
+    const estado = document.getElementById('estadoDescuentos');
+    if (!contenedor || !estado) return;
+    const usados = new Set(normalizarHitosDescuento(valorUsados));
+    const hitos = [6, 12, 18, 24];
+    contenedor.innerHTML = '';
+
+    hitos.forEach(hito => {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'discount-admin-button';
+      boton.style.marginBottom = '0';
+
+      if (usados.has(hito)) {
+        boton.classList.add('used');
+        boton.textContent = `✓ Descuento del ticket ${hito}: UTILIZADO`;
+        boton.disabled = true;
+        boton.title = 'Este descuento ya está registrado en Google Sheets.';
+      } else if (Number(totalMenu) >= hito) {
+        boton.classList.add('available');
+        boton.textContent = `Registrar descuento del 50 % utilizado · Ticket ${hito}`;
+        boton.disabled = false;
+        boton.addEventListener('click', () => registrarDescuentoMenu(hito));
+      } else {
+        boton.classList.add('locked');
+        boton.textContent = `Ticket ${hito} · disponible al acumular ${hito} menús`;
+        boton.disabled = true;
+      }
+      contenedor.appendChild(boton);
+    });
+
+    const pendientes = hitos.filter(h => Number(totalMenu) >= h && !usados.has(h));
+    if (pendientes.length) {
+      estado.textContent = `Descuentos alcanzados pendientes de registrar: ${pendientes.join(', ')}. Registra solo los que ya aplicaste en caja.`;
+    } else {
+      estado.textContent = 'Todos los descuentos alcanzados están registrados, o todavía no se alcanza el siguiente hito.';
+    }
+  }
+
+  async function registrarDescuentoMenu(hito) {
+    if (!idCliente || !pinActual || operacionEnCurso) return;
+    const nombre = document.getElementById('lblNombre').textContent;
+    const confirmado = confirm(`Confirma que ya aplicaste el descuento del 50 % del ticket ${hito} a ${nombre}. Esta acción marcará el sello en verde en su tarjeta.`);
+    if (!confirmado) return;
+
+    operacionEnCurso = true;
+    bloquearAcciones(true);
+    try {
+      const res = await llamarAPI({
+        accion: 'registrarDescuento',
+        id: idCliente,
+        hito: hito,
+        pin: pinActual
+      });
+      if (!res || !res.exito) {
+        alert((res && res.mensaje) || 'No se pudo registrar el descuento.');
+        return;
+      }
+
+      alert(res.mensaje || `Descuento del ticket ${hito} registrado.`);
+      // Vuelve a consultar la fuente de verdad. El cliente verá el sello verde en su siguiente refresco.
+      await cargarCliente(idCliente);
+    } finally {
+      operacionEnCurso = false;
+      bloquearAcciones(false);
+    }
+  }
+
   function bloquearAcciones(bloqueado) {
-    document.querySelectorAll('#pantallaAcciones button').forEach(b => b.disabled = bloqueado);
+    document.querySelectorAll('#pantallaAcciones button').forEach(b => {
+      if (bloqueado) {
+        b.disabled = true;
+      } else {
+        // Al terminar una operación, no habilites de nuevo hitos bloqueados o descuentos ya usados.
+        b.disabled = b.classList.contains('locked') || b.classList.contains('used');
+      }
+    });
   }
 
   async function sumar(tipo, cant) {
