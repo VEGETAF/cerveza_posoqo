@@ -81,8 +81,7 @@
     <p style="color:#aaa;font-size:.9rem;text-align:center;margin-bottom:10px">O ingresa el ID manualmente</p>
     <input type="text" id="txtBuscar" placeholder="Ej. CLI-001" autocomplete="off" autocapitalize="characters" aria-label="ID de cliente">
     <button class="btn-outline" onclick="buscarManual()">Buscar cliente</button>
-    <p class="hint">La página debe abrirse con HTTPS y el navegador debe tener permiso para usar la cámara.</p>
-  </div>
+      </div>
 
   <div id="loader" class="loader" role="status" aria-live="polite">Procesando...</div>
   <div id="mensajeOperacion" class="status operation-result hidden" role="status" aria-live="polite"></div>
@@ -147,7 +146,7 @@
     if (pinActual) {
       // Si se recarga la página en esta misma pestaña, conserva la sesión.
       mostrarPantalla('espera');
-      mostrarEstadoEscaner('Sesión de personal recuperada en esta pestaña.', 'ok');
+      
       if (idPendiente) {
         const id = idPendiente;
         idPendiente = null;
