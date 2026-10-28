@@ -398,8 +398,8 @@
       return;
     }
     aviso.textContent = hitoEnLote
-      ? `⚠️ ¡Atención! Este registro incluye el ticket ${hito}; ese menú debe llevar 50% de descuento.`
-      : `🥗 ¡Atención! El próximo menú será el ticket ${hito} y corresponde a mitad de precio (50% de descuento).`;
+      ? `⚠️ ¡Atención! Este registro incluye el sello ${hito}; ese menú debe llevar 50% de descuento.`
+      : `🥗 ¡Atención! El próximo menú será el sello ${hito} y corresponde a mitad de precio (50% de descuento).`;
     aviso.classList.remove('hidden');
   }
 
@@ -451,7 +451,7 @@
     const etiqueta = tipo === 'cerveza' ? 'cerveza(s)' : 'menú(s)';
     const hitoDescuento = tipo === 'menu' ? hitoDescuentoEnLote(saldosActuales.menu, cant) : null;
     const avisoDescuento = hitoDescuento
-      ? `\n\nATENCIÓN: esta operación incluye el ticket ${hitoDescuento}, al que corresponde 50% de descuento.`
+      ? `\n\nATENCIÓN: esta operación incluye el sello ${hitoDescuento}, al que corresponde 50% de descuento.`
       : '';
     // Un solo cuadro de confirmación antes de registrar. El resultado se muestra en un aviso dentro de la página.
     if (!confirm(`¿Confirmas registrar ${cant} ${etiqueta} para ${document.getElementById('lblNombre').textContent}?${avisoDescuento}`)) return;
