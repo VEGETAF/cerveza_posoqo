@@ -86,8 +86,8 @@
     <button id="btnIniciarCamara" class="btn-gold" onclick="iniciarEscaner()">Abrir cámara y escanear QR</button>
     <button id="btnDetenerCamara" class="btn-stop hidden" onclick="detenerEscanerUI()">Detener cámara</button>
     <hr>
-    <p style="color:#aaa;font-size:.9rem;text-align:center;margin-bottom:10px">O ingresa el ID manualmente</p>
-    <input type="text" id="txtBuscar" placeholder="Ej. CLI-001" autocomplete="off" autocapitalize="characters" aria-label="ID de cliente">
+    <p style="color:#aaa;font-size:.9rem;text-align:center;margin-bottom:10px">Busca por ID de cliente o número de celular</p>
+    <input type="text" id="txtBuscar" placeholder="CLI-001 o celular" autocomplete="off" autocapitalize="characters" aria-label="ID o celular del cliente">
     <button class="btn-outline" onclick="buscarManual()">Buscar cliente</button>
     <p class="hint">La página debe abrirse con HTTPS y el navegador debe tener permiso para usar la cámara.</p>
   </div>
@@ -339,10 +339,24 @@
   }
 
   async function buscarManual() {
-    const id = extraerId(document.getElementById('txtBuscar').value);
-    if (!id) { alert('Ingresa un ID válido, por ejemplo CLI-001.'); return; }
+    if (!pinActual) { mostrarPantalla('login'); return; }
+    const consulta = document.getElementById('txtBuscar').value.trim();
+    if (!consulta) { alert('Ingresa el ID del cliente o su número de celular.'); return; }
     await detenerEscaner();
-    await cargarCliente(id);
+
+    const id = extraerId(consulta);
+    if (id) {
+      await cargarCliente(id);
+      return;
+    }
+
+    const res = await llamarAPI({ accion:'buscarCliente', busqueda:consulta, pin:pinActual });
+    if (!res || !res.exito || !res.id) {
+      alert((res && res.mensaje) || 'No se encontró al cliente.');
+      mostrarPantalla('espera');
+      return;
+    }
+    await cargarCliente(res.id);
   }
 
   async function cargarCliente(id) {
@@ -465,19 +479,17 @@
     try {
       const res = await llamarAPI({ accion:'registrarCafeHoy', id:idCliente, pin:pinActual });
 
-      // Esta operación no debe enviar al personal al escáner: conserva abierta la ficha del mismo cliente.
-      mostrarPantalla('acciones');
-      if (res && res.cafe) {
-        actualizarPanelCafeAdmin(res.cafe);
-      } else {
-        await actualizarEstadoCafeActual();
-      }
-
       if (!res || !res.exito) {
+        mostrarPantalla('acciones');
+        if (res && res.cafe) actualizarPanelCafeAdmin(res.cafe);
+        else await actualizarEstadoCafeActual();
         mostrarResultadoOperacion((res && res.mensaje) || 'No se pudo registrar el café.', 'error');
         return;
       }
 
+      // Tras confirmar y registrar correctamente, vuelve a la pantalla para buscar al siguiente cliente.
+      idCliente = null;
+      await volverAEscanear(false);
       mostrarResultadoOperacion('✅ ' + (res.mensaje || 'Café de hoy registrado correctamente.'), 'ok');
     } catch (error) {
       mostrarPantalla('acciones');
