@@ -44,6 +44,14 @@
     .operation-result { margin:0; }
     @keyframes noticeIn { from { opacity:0; transform:translateY(7px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
     @media (prefers-reduced-motion: reduce) { .client-notice { animation:none; } }
+
+    .cafe-admin { margin: 15px 0; padding: 15px; border: 1px solid #6d4a12; border-radius: 14px; background: #0c0c0c; }
+    .cafe-admin h3 { margin: 0 0 8px; color: var(--gold); font-size: 1.02rem; }
+    .cafe-admin-meta { color: #c7c7c7; font-size: .83rem; line-height: 1.5; margin: 7px 0 12px; white-space: pre-line; }
+    .cafe-admin-status { padding: 10px 11px; border-radius: 10px; font-size: .82rem; line-height: 1.45; background: #202020; color: #eee; margin: 10px 0; }
+    .cafe-admin-status.good { border: 1px solid #166534; color: #bbf7d0; background: #10241b; }
+    .cafe-admin-status.warn { border: 1px solid #805d1f; color: #ffe5ab; background: #2a200f; }
+
     #reader { width:100%; overflow:hidden; border-radius:14px; background:#050505; margin:12px 0; }
     #reader video { border-radius:12px; object-fit:cover; }
     #reader img { max-width:100%; }
@@ -81,7 +89,8 @@
     <p style="color:#aaa;font-size:.9rem;text-align:center;margin-bottom:10px">O ingresa el ID manualmente</p>
     <input type="text" id="txtBuscar" placeholder="Ej. CLI-001" autocomplete="off" autocapitalize="characters" aria-label="ID de cliente">
     <button class="btn-outline" onclick="buscarManual()">Buscar cliente</button>
-      </div>
+    <p class="hint">La página debe abrirse con HTTPS y el navegador debe tener permiso para usar la cámara.</p>
+  </div>
 
   <div id="loader" class="loader" role="status" aria-live="polite">Procesando...</div>
   <div id="mensajeOperacion" class="status operation-result hidden" role="status" aria-live="polite"></div>
@@ -111,6 +120,14 @@
           <button class="btn-outline" onclick="sumar('menu',4)">+4</button>
         </div>
       </div>
+    </div>
+    <div class="cafe-admin" id="panelCafeAdmin">
+      <h3>☕ Tarjeta de café</h3>
+      <div id="cafeAdminEstado" class="cafe-admin-status">Consultando suscripción…</div>
+      <div id="cafeAdminDetalle" class="cafe-admin-meta"></div>
+      <button id="btnActivarSuscripcionCafe" class="btn-gold" onclick="activarSuscripcionCafe()">Activar suscripción mensual</button>
+      <button id="btnRegistrarCafeHoy" class="btn-green hidden" onclick="registrarCafeHoy()">Registrar café de hoy</button>
+      <p class="hint" style="margin-bottom:0">Incluye un café por día durante la vigencia. Los días no utilizados no se acumulan.</p>
     </div>
     <hr>
     <button id="btnCanjearJarra" class="btn-green hidden" onclick="canjear('jarra')">Entregar jarra gratis</button>
@@ -146,7 +163,7 @@
     if (pinActual) {
       // Si se recarga la página en esta misma pestaña, conserva la sesión.
       mostrarPantalla('espera');
-      
+      mostrarEstadoEscaner('Sesión de personal recuperada en esta pestaña.', 'ok');
       if (idPendiente) {
         const id = idPendiente;
         idPendiente = null;
@@ -355,6 +372,7 @@
       document.getElementById('lblNombre').textContent = nombreCliente;
       actualizarSaldos(res.saldos);
       mostrarAvisosCliente(res.cliente, Number(res.saldos.menu) || 0);
+      actualizarPanelCafeAdmin(res.cafe || null);
       mostrarPantalla('acciones');
       document.getElementById('txtBuscar').value = '';
     } catch (error) {
@@ -365,14 +383,100 @@
     }
   }
 
+  function fechaCafeCorta(valor) {
+    const m = String(valor || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(valor || '—');
+  }
+
+  function actualizarPanelCafeAdmin(cafe) {
+    const estado = document.getElementById('cafeAdminEstado');
+    const detalle = document.getElementById('cafeAdminDetalle');
+    const btnActivar = document.getElementById('btnActivarSuscripcionCafe');
+    const btnCafe = document.getElementById('btnRegistrarCafeHoy');
+    if (!estado || !detalle || !btnActivar || !btnCafe) return;
+    if (!cafe) {
+      estado.className = 'cafe-admin-status warn';
+      estado.textContent = 'No se pudo consultar la tarjeta de café. Revisa que el nuevo Code.gs esté publicado.';
+      detalle.textContent = '';
+      btnActivar.classList.add('hidden');
+      btnCafe.classList.add('hidden');
+      return;
+    }
+    const sub = cafe.suscripcion || null;
+    const vigente = cafe.vigente === true || cafe.estado === 'vigente';
+    if (vigente && sub) {
+      estado.className = 'cafe-admin-status good';
+      estado.textContent = cafe.entregadoHoy ? '☑ El café de hoy ya fue entregado.' : '✓ Suscripción vigente. Café de hoy disponible.';
+      detalle.textContent = `Vigencia: ${fechaCafeCorta(sub.fechaInicio)} al ${fechaCafeCorta(sub.fechaFin)}\nEntregas registradas en este periodo: ${Number(cafe.entregasPeriodo) || 0}` + (cafe.entregadoHoy && cafe.horaEntregaHoy ? `\nRegistro de hoy: ${cafe.horaEntregaHoy}` : '');
+      btnActivar.classList.add('hidden');
+      btnCafe.classList.toggle('hidden', !!cafe.entregadoHoy);
+      btnCafe.disabled = !!cafe.entregadoHoy;
+      return;
+    }
+    btnCafe.classList.add('hidden');
+    btnCafe.disabled = true;
+    btnActivar.classList.remove('hidden');
+    btnActivar.disabled = false;
+    if (cafe.estado === 'vencida' && sub) {
+      estado.className = 'cafe-admin-status warn';
+      estado.textContent = 'Suscripción vencida';
+      detalle.textContent = `Último periodo: ${fechaCafeCorta(sub.fechaInicio)} al ${fechaCafeCorta(sub.fechaFin)}\nSe puede activar una nueva suscripción mensual.`;
+    } else if (cafe.estado === 'programada' && sub) {
+      estado.className = 'cafe-admin-status warn';
+      estado.textContent = 'Suscripción todavía no vigente';
+      detalle.textContent = `Periodo: ${fechaCafeCorta(sub.fechaInicio)} al ${fechaCafeCorta(sub.fechaFin)}.`;
+    } else {
+      estado.className = 'cafe-admin-status';
+      estado.textContent = 'Sin suscripción activa';
+      detalle.textContent = 'Activa una suscripción mensual para habilitar un café por día.';
+    }
+  }
+
+  async function actualizarEstadoCafeActual() {
+    if (!idCliente) return;
+    const res = await llamarAPI({ accion:'obtenerEstado', id:idCliente, pin:pinActual });
+    if (res && res.exito) actualizarPanelCafeAdmin(res.cafe || null);
+  }
+
+  async function activarSuscripcionCafe() {
+    if (!idCliente || !pinActual || operacionEnCurso) return;
+    const nombre = document.getElementById('lblNombre').textContent || 'este cliente';
+    if (!confirm(`¿Activar una suscripción mensual de café para ${nombre}? Empieza hoy y vence el mismo día del próximo mes, inclusive.`)) return;
+    operacionEnCurso = true;
+    bloquearAcciones(true);
+    try {
+      const res = await llamarAPI({ accion:'activarSuscripcionCafe', id:idCliente, pin:pinActual });
+      mostrarResultadoOperacion(res && res.mensaje ? res.mensaje : 'No se pudo activar la suscripción.', res && res.exito ? 'ok' : 'error');
+      if (res && res.exito && res.cafe) actualizarPanelCafeAdmin(res.cafe);
+      else await actualizarEstadoCafeActual();
+    } finally {
+      operacionEnCurso = false;
+      bloquearAcciones(false);
+    }
+  }
+
+  async function registrarCafeHoy() {
+    if (!idCliente || !pinActual || operacionEnCurso) return;
+    const nombre = document.getElementById('lblNombre').textContent || 'este cliente';
+    if (!confirm(`¿Confirmas entregar el café de hoy a ${nombre}? Solo se permite una entrega por día.`)) return;
+    operacionEnCurso = true;
+    bloquearAcciones(true);
+    try {
+      const res = await llamarAPI({ accion:'registrarCafeHoy', id:idCliente, pin:pinActual });
+      mostrarResultadoOperacion(res && res.mensaje ? res.mensaje : 'No se pudo registrar el café.', res && res.exito ? 'ok' : 'error');
+      if (res && res.cafe) actualizarPanelCafeAdmin(res.cafe);
+      else await actualizarEstadoCafeActual();
+    } finally {
+      operacionEnCurso = false;
+      bloquearAcciones(false);
+    }
+  }
+
   function actualizarSaldos(saldos) {
     const cerveza = Math.max(0, Number(saldos.cerveza) || 0);
     const menu = Math.max(0, Number(saldos.menu) || 0);
     saldosActuales = { cerveza, menu };
-    // Si el saldo es múltiplo exacto de 9 y aún hay jarra pendiente, mostrar 9/9 (no 0/9).
-    // Al canjear la jarra, Code.gs resta 9 y el progreso vuelve a 0/9.
-    const avanceCerveza = (cerveza > 0 && cerveza % 9 === 0) ? 9 : (cerveza % 9);
-    document.getElementById('statCerveza').textContent = `${avanceCerveza}/9`;
+    document.getElementById('statCerveza').textContent = `${cerveza % 9}/9`;
     const avanceMenu = (menu > 0 && menu % 24 === 0) ? 24 : menu % 24;
     document.getElementById('statMenu').textContent = `${avanceMenu}/24`;
     document.getElementById('btnCanjearJarra').classList.toggle('hidden', cerveza < 9);
@@ -398,8 +502,8 @@
       return;
     }
     aviso.textContent = hitoEnLote
-      ? `⚠️ ¡Atención! Este registro incluye el sello ${hito}; ese menú debe llevar 50% de descuento.`
-      : `🥗 ¡Atención! El próximo menú será el sello ${hito} y corresponde a mitad de precio (50% de descuento).`;
+      ? `⚠️ ¡Atención! Este registro incluye el ticket ${hito}; ese menú debe llevar 50% de descuento.`
+      : `🥗 ¡Atención! El próximo menú será el ticket ${hito} y corresponde a mitad de precio (50% de descuento).`;
     aviso.classList.remove('hidden');
   }
 
@@ -451,7 +555,7 @@
     const etiqueta = tipo === 'cerveza' ? 'cerveza(s)' : 'menú(s)';
     const hitoDescuento = tipo === 'menu' ? hitoDescuentoEnLote(saldosActuales.menu, cant) : null;
     const avisoDescuento = hitoDescuento
-      ? `\n\nATENCIÓN: esta operación incluye el sello ${hitoDescuento}, al que corresponde 50% de descuento.`
+      ? `\n\nATENCIÓN: esta operación incluye el ticket ${hitoDescuento}, al que corresponde 50% de descuento.`
       : '';
     // Un solo cuadro de confirmación antes de registrar. El resultado se muestra en un aviso dentro de la página.
     if (!confirm(`¿Confirmas registrar ${cant} ${etiqueta} para ${document.getElementById('lblNombre').textContent}?${avisoDescuento}`)) return;
