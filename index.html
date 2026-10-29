@@ -459,13 +459,29 @@
     if (!idCliente || !pinActual || operacionEnCurso) return;
     const nombre = document.getElementById('lblNombre').textContent || 'este cliente';
     if (!confirm(`¿Confirmas entregar el café de hoy a ${nombre}? Solo se permite una entrega por día.`)) return;
+
     operacionEnCurso = true;
     bloquearAcciones(true);
     try {
       const res = await llamarAPI({ accion:'registrarCafeHoy', id:idCliente, pin:pinActual });
-      mostrarResultadoOperacion(res && res.mensaje ? res.mensaje : 'No se pudo registrar el café.', res && res.exito ? 'ok' : 'error');
-      if (res && res.cafe) actualizarPanelCafeAdmin(res.cafe);
-      else await actualizarEstadoCafeActual();
+
+      // Esta operación no debe enviar al personal al escáner: conserva abierta la ficha del mismo cliente.
+      mostrarPantalla('acciones');
+      if (res && res.cafe) {
+        actualizarPanelCafeAdmin(res.cafe);
+      } else {
+        await actualizarEstadoCafeActual();
+      }
+
+      if (!res || !res.exito) {
+        mostrarResultadoOperacion((res && res.mensaje) || 'No se pudo registrar el café.', 'error');
+        return;
+      }
+
+      mostrarResultadoOperacion('✅ ' + (res.mensaje || 'Café de hoy registrado correctamente.'), 'ok');
+    } catch (error) {
+      mostrarPantalla('acciones');
+      mostrarResultadoOperacion('No se pudo registrar el café: ' + (error && error.message ? error.message : 'error inesperado.'), 'error');
     } finally {
       operacionEnCurso = false;
       bloquearAcciones(false);
@@ -476,7 +492,10 @@
     const cerveza = Math.max(0, Number(saldos.cerveza) || 0);
     const menu = Math.max(0, Number(saldos.menu) || 0);
     saldosActuales = { cerveza, menu };
-    document.getElementById('statCerveza').textContent = `${cerveza % 9}/9`;
+    // Mantiene 9/9 visible mientras haya una jarra pendiente de canje.
+    // Tras canjear, el backend descuenta 9 y el siguiente avance se muestra normalmente.
+    const avanceCerveza = Math.min(cerveza, 9);
+    document.getElementById('statCerveza').textContent = `${avanceCerveza}/9`;
     const avanceMenu = (menu > 0 && menu % 24 === 0) ? 24 : menu % 24;
     document.getElementById('statMenu').textContent = `${avanceMenu}/24`;
     document.getElementById('btnCanjearJarra').classList.toggle('hidden', cerveza < 9);
